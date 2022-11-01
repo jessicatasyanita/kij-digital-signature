@@ -66,3 +66,48 @@ def loadFile():
     print("\n\n".join("{}:{}".format(i, j) for i, j in final.items()))
 
     return True
+
+def sign_file(input_file: str, signatureID: str, x_coordinate: int, 
+            y_coordinate: int, pages: Tuple = None, output_file: str = None):
+
+    if not output_file:
+        output_file = (os.path.splitext(input_file)[0]) + "_signed.pdf"
+
+    PDFNet.Initialize("demo:1667003327288:7ad3cf020300000000c9c4eac83c3783fe2559b0f726886b2600d0224d")
+    doc = PDFDoc(input_file)
+
+    sigField = SignatureWidget.Create(doc, Rect(x_coordinate, y_coordinate, x_coordinate+100, y_coordinate+50), signatureID)
+    pg = doc.GetPage(1)  
+    pg.AnnotPushBack(sigField)
+
+    sign_filename = os.path.dirname(os.path.abspath(__file__)) + "\static\signature.jpg"
+
+    pk_filename = os.path.dirname(os.path.abspath(__file__)) + "\static\container.pfx"
+
+    approval_field = doc.GetField(signatureID)
+    approval_signature_digsig_field = DigitalSignatureField(approval_field)
+
+    img = Image.Create(doc.GetSDFDoc(), sign_filename)
+    found_approval_signature_widget = SignatureWidget(approval_field.GetSDFObj())
+    found_approval_signature_widget.CreateSignatureAppearance(img)
+
+    approval_signature_digsig_field.SignOnNextSave(pk_filename, '')
+
+    opts = VerificationOptions(VerificationOptions.e_compatibility_and_archiving)
+    opts.AddTrustedCertificate(pk_filename)
+    results = doc.VerifySignedDigitalSignatures(opts)
+    verified = ""
+    if(results == 1):
+        verified = "YES"
+    elif(results == 0):
+        verified = "NO"
+
+    doc.Save(output_file, SDFDoc.e_incremental)
+    summary = {
+        "Input File": input_file, "Signature ID": signatureID, 
+        "Output File": output_file, "Signature File": sign_filename, 
+        "Certificate File": pk_filename, "Verified": verified
+    }
+
+    print("\n\n".join("{}:{}".format(i, j) for i, j in summary.items()))
+    return True
