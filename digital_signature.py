@@ -33,24 +33,28 @@ def signFile(input_file: str, output_file: str = None):
     document = openFile('sample.pdf')
     signature = rsa.sign(document, privateKey, 'SHA-256')
 
-    s = open('signature_file','wb')
+    s = open('signature.pfx','wb')
     s.write(signature)
 
     with open(output_file, 'wb') as f:
-        f.write(document + signature)
-
+        f.write(document)
+    
+    #embed signature
+    # with open(output_file, 'wb') as f:
+    #     f.write(document + signature)
+    
     # hashResult = rsa.compute_hash(document, 'SHA-256') 
     # print("\nHash Value Size:", len(hashResult)*8)
 
-    summary = { "Input File": input_file, "Output File": output_file, "Signature": signature, "SignatureASCII": binascii.hexlify(signature)}
+    summary = { "Input File": input_file, "Output File": output_file, "Signature": signature, "Signature HEX": binascii.hexlify(signature)}
     print("\n\n".join("{}:{}".format(i, j) for i, j in summary.items()))
     return True
 
 # untuk verifikasi dgital signature
 def verify():
     publicKey = rsa.PublicKey.load_pkcs1(openFile('public_key.key'))
-    document = openFile('sample.pdf')
-    signature = openFile('signature_file')
+    document = openFile('sample_signed.pdf')
+    signature = openFile('signature.pfx')
     try:
         rsa.verify(document,signature,publicKey)
         print("Verified: YES")
@@ -77,7 +81,6 @@ def parse_args():
     path = parser.parse_known_args()[0].input_path
     if path and os.path.isfile(path):
         parser.add_argument('-o', dest='output_file', type=str)
-
     args = vars(parser.parse_args())
 
     return args
